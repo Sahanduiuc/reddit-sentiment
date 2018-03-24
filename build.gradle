@@ -1,0 +1,116 @@
+// gradle task and plugin configuration
+buildscript {
+    repositories {
+        jcenter()
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.17.0'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'maven'
+apply plugin: 'signing'
+apply plugin: 'com.github.ben-manes.versions'
+apply plugin: 'com.jfrog.bintray'
+
+// global settings
+group 'io.cloudwall'
+version '0.1.1'
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+repositories {
+    jcenter()
+    maven { url "https://jitpack.io" }
+    maven { url 'http://download.oracle.com/maven' }
+    maven { url 'https://dl.bintray.com/io-cloudwall/cloudwall-maven' }
+}
+
+sourceSets {
+    examples {
+        java {
+            srcDir 'src/examples/java'
+        }
+        resources {
+            srcDir 'src/examples/resources'
+        }
+        compileClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+
+dependencies {
+    compile 'com.google.code.findbugs:jsr305:3.0.2',
+	'net.dean.jraw:JRAW:1.0.0',
+        'com.github.apanimesh061:vader-sentiment-analyzer:1.0'
+    testCompile 'junit:junit:4.12',
+                'org.hamcrest:hamcrest-library:1.4-atlassian-1',
+                'org.mockito:mockito-core:2.17.0'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from tasks.javadoc.destinationDir
+}
+
+// workaround to suppress extra-noisy Javadoc lint and other warnings
+allprojects {
+    tasks.withType(Javadoc) {
+      options.addStringOption('Xdoclint:none', '-quiet')
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+task examplesJar(type: Jar, dependsOn: ['examplesClasses' ]) {
+    from sourceSets.examples.output
+    classifier = 'examples'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.6'
+}
+
+configurations.create('bintrayArchives')
+artifacts {
+    archives jar
+    archives javadocJar
+    archives sourcesJar
+    archives examplesJar
+    bintrayArchives jar
+    bintrayArchives javadocJar
+    bintrayArchives sourcesJar
+    bintrayArchives examplesJar
+}
+
+bintray {
+    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
+   	key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
+	configurations = ['bintrayArchives']
+	pkg {
+		repo = 'cloudwall-maven'
+		name = 'reddit-sentiment'
+		userOrg = 'io-cloudwall'
+        desc = 'Bladerunner App Config API'
+        websiteUrl = 'https://github.com/cloudwall/reddit-sentiment'
+        issueTrackerUrl = 'https://github.com/cloudwall/reddit-sentiment/issues'
+		vcsUrl = 'https://github.com/cloudwall/reddit-sentiment.git'
+        licenses = ['Apache-2.0']
+
+        githubRepo = 'cloudwall/reddit-sentiment'
+        githubReleaseNotesFile = 'README.md'
+
+		version {
+			name = project.version
+			vcsTag = "v$project.version"
+			attributes = ['gradle-plugin': "io.cloudwall:reddit-sentiment:$project.version"]
+		}
+	}
+}
