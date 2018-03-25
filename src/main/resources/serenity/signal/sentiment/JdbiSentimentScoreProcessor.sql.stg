@@ -1,0 +1,20 @@
+selectAll() ::= <<
+    SELECT
+        id
+    FROM sentiment_scores
+>>
+
+insert() ::= <<
+    INSERT INTO sentiment_scores (
+        id,
+        polarity,
+        weight,
+        created_ts
+    ) VALUES (
+        :id,
+        :polarity,
+        :weight,
+        :createdTs
+    )
+>>
+
